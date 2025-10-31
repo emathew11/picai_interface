@@ -1,5 +1,6 @@
 # Inference wrapper for PiCAI nnUNet Docker container. Handles Docker execution and file I/O.
 
+import os
 import subprocess
 import logging
 from pathlib import Path
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Docker image name
 DOCKER_IMAGE = os.getenv(
     "PICAI_DOCKER_IMAGE", 
-    "picai_baseline_nnunet_semi_supervised_processor:latest"
+    "picai_nnunet_gc_algorithm:latest"
 )
 
 # check if Docker is available.
@@ -58,6 +59,14 @@ def run_picai_inference(
     input_dir.mkdir(parents=True, exist_ok=True)
     output_path.mkdir(parents=True, exist_ok=True)
     
+    # pre-create output subdirectories that the container expects
+    (output_path / "images" / "cspca-detection-map").mkdir(parents=True, exist_ok=True)
+
+    # set permissions to ensure Docker container can write
+    import stat
+    os.chmod(output_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+    os.chmod(output_path / "images", stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
     # copy files to expected location with correct naming
     # PI-CAI expects: <case_id>_<modality>.mha
     case_id = "case_001"
